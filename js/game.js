@@ -89,9 +89,17 @@ class Ship {
         this.x += this.vx;
         this.y += this.vy;
 
-        // Fricción
-        this.vx *= 0.99;
-        this.vy *= 0.99;
+        // Fricción más pronunciada (antes era 0.99, ahora 0.97)
+        this.vx *= 0.97;
+        this.vy *= 0.97;
+
+        // Límite de velocidad máxima
+        const maxSpeed = 8;
+        const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+        if (speed > maxSpeed) {
+            this.vx = (this.vx / speed) * maxSpeed;
+            this.vy = (this.vy / speed) * maxSpeed;
+        }
 
         // Límites del canvas
         if (this.x < 0) this.x = CANVAS_WIDTH;
@@ -119,7 +127,7 @@ class Ship {
 
     thrust() {
         this.isThrusting = true;
-        const thrustForce = 0.5;
+        const thrustForce = 0.8; // Aumentado de 0.5 a 0.8 para mejor aceleración
         this.vx += Math.cos(this.angle) * thrustForce;
         this.vy += Math.sin(this.angle) * thrustForce;
     }
@@ -197,6 +205,14 @@ class Projectile {
 
     isAlive() {
         return this.life > 0 && this.x > 0 && this.x < CANVAS_WIDTH && this.y > 0 && this.y < CANVAS_HEIGHT;
+    }
+
+    // MÉTODO FALTANTE: Collision detection
+    canCollideWith(obj) {
+        const dx = this.x - obj.x;
+        const dy = this.y - obj.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        return distance < this.radius + obj.radius;
     }
 }
 
@@ -477,7 +493,7 @@ class AsteroidsGame {
         // Colisiones: proyectiles con asteroides
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             for (let j = this.asteroids.length - 1; j >= 0; j--) {
-                if (this.projectiles[i].canCollideWith(this.asteroids[j])) {
+                if (this.projectiles[i] && this.asteroids[j] && this.projectiles[i].canCollideWith(this.asteroids[j])) {
                     const asteroid = this.asteroids[j];
                     this.score += asteroid.points;
 
@@ -504,7 +520,7 @@ class AsteroidsGame {
 
         // Colisiones: nave con power-ups
         for (let i = this.powerUps.length - 1; i >= 0; i--) {
-            if (this.ship.canCollideWith(this.powerUps[i])) {
+            if (this.powerUps[i] && this.ship.canCollideWith(this.powerUps[i])) {
                 this.ship.activatePowerUp(this.powerUps[i].type);
                 this.powerUps.splice(i, 1);
             }
