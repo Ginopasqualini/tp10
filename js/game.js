@@ -14,13 +14,25 @@ const GAME_STATE = {
     GAME_OVER: 'gameOver'
 };
 
+// Colores personalizados (Rojo Bordo, Amarillo, Negro)
+const COLORS = {
+    DARK_RED: '#8B0000',      // Rojo bordo oscuro
+    BRIGHT_RED: '#FF0000',    // Rojo brillante
+    YELLOW: '#FFD700',        // Amarillo dorado
+    BLACK: '#000000',         // Negro
+    DARK_BG: '#0A0000'        // Negro muy oscuro para el fondo
+};
+
 // Variable global para el audio
 let gameAudio = null;
 let shootSound = null;
 let musicStarted = false;
 
+// Variable global para la imagen de la nave
+let shipImage = null;
+
 // ============================================
-// CLASE: NAVE (Figura Compleja con Bézier)
+// CLASE: NAVE (Con imagen custom)
 // ============================================
 class Ship {
     constructor(x, y) {
@@ -40,29 +52,34 @@ class Ship {
         this.powerUpTimer = 0;
     }
 
-    // Dibuja la nave usando líneas y Bézier (FIGURA COMPLEJA)
+    // Dibuja la nave usando imagen o figura por defecto
     draw(ctx) {
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle);
 
-        // Cuerpo principal de la nave (triángulo)
-        ctx.fillStyle = '#00ff00';
-        ctx.strokeStyle = '#00ff00';
-        ctx.lineWidth = 2;
-        
-        ctx.beginPath();
-        ctx.moveTo(15, 0);           // Punta delantera
-        ctx.lineTo(-10, -12);        // Ala izquierda
-        ctx.lineTo(-5, 0);           // Base trasera izquierda
-        ctx.lineTo(-10, 12);         // Ala derecha
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
+        // Si la imagen está cargada, usarla
+        if (shipImage && shipImage.complete && shipImage.naturalHeight !== 0) {
+            ctx.drawImage(shipImage, -15, -15, 30, 30);
+        } else {
+            // Figura de fallback (triángulo dorado)
+            ctx.fillStyle = COLORS.YELLOW;
+            ctx.strokeStyle = COLORS.YELLOW;
+            ctx.lineWidth = 2;
+            
+            ctx.beginPath();
+            ctx.moveTo(15, 0);           // Punta delantera
+            ctx.lineTo(-10, -12);        // Ala izquierda
+            ctx.lineTo(-5, 0);           // Base trasera izquierda
+            ctx.lineTo(-10, 12);         // Ala derecha
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+        }
 
         // Llama del propulsor (usando curva Bézier cuadrática)
         if (this.isThrusting) {
-            ctx.strokeStyle = '#ff6600';
+            ctx.strokeStyle = COLORS.BRIGHT_RED;
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(-5, -6);
@@ -79,8 +96,8 @@ class Ship {
 
         // Escudo visual (si está activo)
         if (this.powerUpActive === 'shield') {
-            ctx.strokeStyle = '#00ffff';
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = COLORS.YELLOW;
+            ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.arc(0, 0, 25, 0, Math.PI * 2);
             ctx.stroke();
@@ -94,11 +111,11 @@ class Ship {
         this.x += this.vx;
         this.y += this.vy;
 
-        // Fricción más pronunciada (antes era 0.99, ahora 0.97)
+        // Fricción más pronunciada
         this.vx *= 0.97;
         this.vy *= 0.97;
 
-        // Límite de velocidad máxima (REDUCIDO de 8 a 4 para más control)
+        // Límite de velocidad máxima
         const maxSpeed = 4;
         const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
         if (speed > maxSpeed) {
@@ -132,7 +149,7 @@ class Ship {
 
     thrust() {
         this.isThrusting = true;
-        const thrustForce = 0.3; // REDUCIDO de 0.8 a 0.3 para más control
+        const thrustForce = 0.3;
         this.vx += Math.cos(this.angle) * thrustForce;
         this.vy += Math.sin(this.angle) * thrustForce;
     }
@@ -167,7 +184,7 @@ class Projectile {
         this.life = 60; // frames
         this.isMissile = false;
         this.explosionRadius = 0;
-        this.isEnemyProjectile = false; // Nuevo: identificar proyectiles enemigos
+        this.isEnemyProjectile = false;
     }
 
     update() {
@@ -178,8 +195,8 @@ class Projectile {
 
     draw(ctx) {
         if (!this.isMissile) {
-            // Bala normal
-            ctx.fillStyle = this.isEnemyProjectile ? '#ff3333' : '#ffff00';
+            // Bala normal (amarilla para la nave, roja para enemigos)
+            ctx.fillStyle = this.isEnemyProjectile ? COLORS.BRIGHT_RED : COLORS.YELLOW;
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
             ctx.fill();
@@ -190,7 +207,7 @@ class Projectile {
             const angle = Math.atan2(this.vy, this.vx);
             ctx.rotate(angle);
 
-            ctx.fillStyle = '#ff0000';
+            ctx.fillStyle = COLORS.BRIGHT_RED;
             ctx.beginPath();
             ctx.moveTo(6, 0);
             ctx.lineTo(-6, -4);
@@ -199,7 +216,7 @@ class Projectile {
             ctx.fill();
 
             // Estela del misil
-            ctx.strokeStyle = '#ff6600';
+            ctx.strokeStyle = COLORS.YELLOW;
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(-6, -2);
@@ -210,7 +227,7 @@ class Projectile {
 
             // Dibujar radio de explosión si está activo
             if (this.explosionRadius > 0) {
-                ctx.strokeStyle = `rgba(255, 100, 0, ${this.explosionRadius / 50})`;
+                ctx.strokeStyle = `rgba(255, 215, 0, ${this.explosionRadius / 50})`;
                 ctx.lineWidth = 2;
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.explosionRadius, 0, Math.PI * 2);
@@ -223,7 +240,6 @@ class Projectile {
         return this.life > 0 && this.x > 0 && this.x < CANVAS_WIDTH && this.y > 0 && this.y < CANVAS_HEIGHT;
     }
 
-    // MÉTODO: Collision detection
     canCollideWith(obj) {
         const dx = this.x - obj.x;
         const dy = this.y - obj.y;
@@ -231,9 +247,8 @@ class Projectile {
         return distance < this.radius + obj.radius;
     }
 
-    // MÉTODO: Explosion para misiles
     explode() {
-        this.explosionRadius = 50; // Radio de explosión
+        this.explosionRadius = 50;
     }
 }
 
@@ -264,8 +279,8 @@ class Asteroid {
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle);
 
-        // Asteroide como círculo irregular con espiral
-        ctx.strokeStyle = '#888888';
+        // Asteroide como círculo irregular con espiral (Rojo bordo)
+        ctx.strokeStyle = COLORS.DARK_RED;
         ctx.lineWidth = 2;
         ctx.beginPath();
 
@@ -285,8 +300,8 @@ class Asteroid {
         ctx.closePath();
         ctx.stroke();
 
-        // Espiral dentro del asteroide (FIGURA COMPLEJA)
-        ctx.strokeStyle = '#555555';
+        // Espiral dentro del asteroide
+        ctx.strokeStyle = COLORS.BRIGHT_RED;
         ctx.lineWidth = 1;
         ctx.beginPath();
         for (let i = 0; i < Math.PI * 4; i += 0.1) {
@@ -322,7 +337,6 @@ class Asteroid {
         return distance < this.radius + obj.radius;
     }
 
-    // MÉTODO: Detectar si está en radio de explosión
     isInExplosion(explosionX, explosionY, explosionRadius) {
         const dx = this.x - explosionX;
         const dy = this.y - explosionY;
@@ -332,7 +346,7 @@ class Asteroid {
 }
 
 // ============================================
-// CLASE: PODER-UP
+// CLASE: POWER-UP
 // ============================================
 class PowerUp {
     constructor(x, y, type) {
@@ -346,9 +360,9 @@ class PowerUp {
         this.life = 300; // 5 segundos
 
         this.colorMap = {
-            'triple': '#ff00ff',
-            'missile': '#ff0000',
-            'shield': '#00ffff'
+            'triple': COLORS.YELLOW,
+            'missile': COLORS.BRIGHT_RED,
+            'shield': COLORS.YELLOW
         };
     }
 
@@ -362,7 +376,7 @@ class PowerUp {
         ctx.strokeStyle = color;
         ctx.lineWidth = 2;
 
-        // Estrella de 5 puntas (FIGURA COMPLEJA)
+        // Estrella de 5 puntas
         const points = 5;
         const innerRadius = 5;
         const outerRadius = 12;
@@ -384,7 +398,7 @@ class PowerUp {
         ctx.stroke();
 
         // Texto indicador
-        ctx.fillStyle = color;
+        ctx.fillStyle = COLORS.BLACK;
         ctx.font = 'bold 8px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -414,7 +428,7 @@ class PowerUp {
 }
 
 // ============================================
-// CLASE: ENEMIGO (NUEVO)
+// CLASE: ENEMIGO
 // ============================================
 class Enemy {
     constructor(x, y) {
@@ -442,9 +456,9 @@ class Enemy {
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle);
 
-        // Enemigo como octágono rojo
-        ctx.fillStyle = '#ff3333';
-        ctx.strokeStyle = '#ff0000';
+        // Enemigo como octágono rojo oscuro
+        ctx.fillStyle = COLORS.DARK_RED;
+        ctx.strokeStyle = COLORS.BRIGHT_RED;
         ctx.lineWidth = 2;
 
         ctx.beginPath();
@@ -463,9 +477,9 @@ class Enemy {
         ctx.stroke();
 
         // Indicador de salud (barrita arriba del enemigo)
-        ctx.fillStyle = this.health === 2 ? '#00ff00' : '#ffff00';
+        ctx.fillStyle = this.health === 2 ? COLORS.YELLOW : COLORS.BRIGHT_RED;
         ctx.fillRect(-5, -18, 10 * this.health, 3);
-        ctx.strokeStyle = '#ffffff';
+        ctx.strokeStyle = COLORS.YELLOW;
         ctx.strokeRect(-5, -18, 10, 3);
 
         ctx.restore();
@@ -524,7 +538,7 @@ class Enemy {
 
     takeDamage() {
         this.health--;
-        return this.health <= 0; // Retorna true si está destruido
+        return this.health <= 0;
     }
 }
 
@@ -533,7 +547,6 @@ class Enemy {
 // ============================================
 function playShootSound() {
     if (shootSound) {
-        // Reiniciar el sonido desde el inicio
         shootSound.currentTime = 0;
         shootSound.play().catch(() => {
             // El sonido no se pudo reproducir, ignorar error
@@ -556,11 +569,11 @@ class AsteroidsGame {
         this.lives = 3;
         this.level = 1;
         this.wave = 0;
-        this.asteroidsDestroyed = 0; // Contador de asteroides destruidos
+        this.asteroidsDestroyed = 0;
 
         this.ship = new Ship(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
         this.asteroids = [];
-        this.enemies = []; // NUEVO: array de enemigos
+        this.enemies = [];
         this.projectiles = [];
         this.powerUps = [];
 
@@ -602,9 +615,9 @@ class AsteroidsGame {
 
     spawnWave() {
         this.asteroids = [];
-        this.enemies = []; // Limpiar enemigos
+        this.enemies = [];
         
-        // Aumentar cantidad de asteroides por nivel: nivel 1 = 3, nivel 2 = 5, nivel 3 = 7, etc.
+        // Aumentar cantidad de asteroides por nivel
         const asteroidCount = 3 + (this.level - 1) * 2;
 
         for (let i = 0; i < asteroidCount; i++) {
@@ -617,9 +630,9 @@ class AsteroidsGame {
             this.asteroids.push(new Asteroid(x, y, 3));
         }
 
-        // NUEVO: Añadir enemigos a partir del nivel 2
+        // Añadir enemigos a partir del nivel 2
         if (this.level >= 2) {
-            const enemyCount = 1 + (this.level - 2); // Nivel 2: 1 enemigo, Nivel 3: 2, etc.
+            const enemyCount = 1 + (this.level - 2);
             for (let i = 0; i < enemyCount; i++) {
                 let x, y;
                 do {
@@ -671,11 +684,10 @@ class AsteroidsGame {
         // Actualizar asteroides
         this.asteroids.forEach((asteroid) => asteroid.update());
 
-        // NUEVO: Actualizar enemigos e inteligencia
+        // Actualizar enemigos
         this.enemies.forEach((enemy) => {
             enemy.update();
             
-            // Los enemigos disparan cada cierto tiempo
             if (enemy.canShoot) {
                 const projectile = enemy.shoot(this.ship);
                 if (projectile) {
@@ -694,27 +706,23 @@ class AsteroidsGame {
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             for (let j = this.asteroids.length - 1; j >= 0; j--) {
                 if (this.projectiles[i] && this.asteroids[j] && this.projectiles[i].canCollideWith(this.asteroids[j])) {
-                    // No contar proyectiles de enemigos
                     if (this.projectiles[i].isEnemyProjectile) continue;
 
                     const asteroid = this.asteroids[j];
                     const projectile = this.projectiles[i];
                     
                     this.score += asteroid.points;
-                    this.asteroidsDestroyed++; // Incrementar contador
+                    this.asteroidsDestroyed++;
 
-                    // Generar power-up aleatoriamente
                     if (Math.random() < 0.3) {
                         const types = ['triple', 'missile', 'shield'];
                         const randomType = types[Math.floor(Math.random() * types.length)];
                         this.powerUps.push(new PowerUp(asteroid.x, asteroid.y, randomType));
                     }
 
-                    // Si es un misil, aplicar explosión
                     if (projectile.isMissile) {
                         projectile.explode();
                         
-                        // Destruir asteroides en radio de explosión
                         const asteroidsToDie = [];
                         for (let k = this.asteroids.length - 1; k >= 0; k--) {
                             if (this.asteroids[k].isInExplosion(projectile.x, projectile.y, 50)) {
@@ -722,7 +730,6 @@ class AsteroidsGame {
                             }
                         }
 
-                        // Procesar cada asteroide en la explosión
                         for (let asteroidIndex of asteroidsToDie) {
                             if (this.asteroids[asteroidIndex]) {
                                 const ast = this.asteroids[asteroidIndex];
@@ -735,7 +742,6 @@ class AsteroidsGame {
                                     this.powerUps.push(new PowerUp(ast.x, ast.y, randomType));
                                 }
 
-                                // Dividir asteroide
                                 if (ast.size > 1) {
                                     for (let k = 0; k < 2; k++) {
                                         this.asteroids.push(new Asteroid(ast.x, ast.y, ast.size - 1));
@@ -746,7 +752,6 @@ class AsteroidsGame {
                             }
                         }
                     } else {
-                        // Dividir asteroide normalmente
                         if (asteroid.size > 1) {
                             for (let k = 0; k < 2; k++) {
                                 this.asteroids.push(new Asteroid(asteroid.x, asteroid.y, asteroid.size - 1));
@@ -761,18 +766,15 @@ class AsteroidsGame {
             }
         }
 
-        // NUEVO: Colisiones: proyectiles con enemigos
+        // Colisiones: proyectiles con enemigos
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             for (let j = this.enemies.length - 1; j >= 0; j--) {
                 if (this.projectiles[i] && this.enemies[j] && this.projectiles[i].canCollideWith(this.enemies[j])) {
-                    // No contar proyectiles de otros enemigos
                     if (this.projectiles[i].isEnemyProjectile) continue;
 
                     const enemy = this.enemies[j];
                     
-                    // Infligir daño
                     if (enemy.takeDamage()) {
-                        // Enemigo destruido
                         this.score += enemy.score;
                         this.enemies.splice(j, 1);
                     }
@@ -810,7 +812,7 @@ class AsteroidsGame {
             }
         }
 
-        // NUEVO: Colisiones: nave con enemigos
+        // Colisiones: nave con enemigos
         for (let enemy of this.enemies) {
             if (this.ship.canCollideWith(enemy)) {
                 if (this.ship.powerUpActive === 'shield') {
@@ -829,7 +831,7 @@ class AsteroidsGame {
             }
         }
 
-        // NUEVO: Colisiones: proyectiles enemigos con nave
+        // Colisiones: proyectiles enemigos con nave
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             if (this.projectiles[i] && this.projectiles[i].isEnemyProjectile && this.ship.canCollideWith(this.projectiles[i])) {
                 if (this.ship.powerUpActive === 'shield') {
@@ -849,14 +851,12 @@ class AsteroidsGame {
             }
         }
 
-        // Siguiente nivel (después de 15 asteroides destruidos y sin enemigos)
+        // Siguiente nivel
         if (this.asteroidsDestroyed >= 15 && this.asteroids.length === 0 && this.enemies.length === 0) {
-            this.asteroidsDestroyed = 0; // Resetear contador
+            this.asteroidsDestroyed = 0;
             this.level++;
             this.spawnWave();
-        }
-        // O si todos los asteroides fueron destruidos (respaldo)
-        else if (this.asteroids.length === 0 && this.enemies.length === 0 && this.asteroidsDestroyed < 15) {
+        } else if (this.asteroids.length === 0 && this.enemies.length === 0 && this.asteroidsDestroyed < 15) {
             this.level++;
             this.asteroidsDestroyed = 0;
             this.spawnWave();
@@ -864,12 +864,12 @@ class AsteroidsGame {
     }
 
     draw() {
-        // Fondo
-        this.ctx.fillStyle = '#000000';
+        // Fondo (Negro muy oscuro)
+        this.ctx.fillStyle = COLORS.DARK_BG;
         this.ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-        // Cuadrícula de fondo (efecto arcade)
-        this.ctx.strokeStyle = 'rgba(0, 255, 0, 0.05)';
+        // Cuadrícula de fondo (efecto arcade en rojo oscuro)
+        this.ctx.strokeStyle = 'rgba(139, 0, 0, 0.1)';
         this.ctx.lineWidth = 1;
         for (let i = 0; i < CANVAS_WIDTH; i += 50) {
             this.ctx.beginPath();
@@ -887,7 +887,7 @@ class AsteroidsGame {
         // Dibujar entidades
         this.ship.draw(this.ctx);
         this.asteroids.forEach((asteroid) => asteroid.draw(this.ctx));
-        this.enemies.forEach((enemy) => enemy.draw(this.ctx)); // NUEVO: dibujar enemigos
+        this.enemies.forEach((enemy) => enemy.draw(this.ctx));
         this.projectiles.forEach((proj) => proj.draw(this.ctx));
         this.powerUps.forEach((pu) => pu.draw(this.ctx));
 
@@ -906,7 +906,7 @@ class AsteroidsGame {
         if (this.state === GAME_STATE.PAUSED) {
             this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
             this.ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-            this.ctx.fillStyle = '#00ff00';
+            this.ctx.fillStyle = COLORS.BRIGHT_RED;
             this.ctx.font = 'bold 48px Arial';
             this.ctx.textAlign = 'center';
             this.ctx.textBaseline = 'middle';
@@ -917,7 +917,7 @@ class AsteroidsGame {
         if (this.state === GAME_STATE.GAME_OVER) {
             this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
             this.ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-            this.ctx.fillStyle = '#ff0000';
+            this.ctx.fillStyle = COLORS.BRIGHT_RED;
             this.ctx.font = 'bold 48px Arial';
             this.ctx.textAlign = 'center';
             this.ctx.textBaseline = 'middle';
@@ -925,6 +925,7 @@ class AsteroidsGame {
             this.ctx.font = 'bold 32px Arial';
             this.ctx.fillText(`Score Final: ${this.score}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
             this.ctx.font = '16px Arial';
+            this.ctx.fillStyle = COLORS.YELLOW;
             this.ctx.fillText('Recarga la página para jugar de nuevo', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 70);
         }
     }
@@ -943,7 +944,6 @@ Ship.prototype.shoot = function (game) {
     this.canShoot = false;
     this.lastShootTime = Date.now();
 
-    // Reproducir sonido de disparo
     playShootSound();
 
     const bulletSpeed = 5;
@@ -951,7 +951,6 @@ Ship.prototype.shoot = function (game) {
     const by = Math.sin(this.angle) * bulletSpeed;
 
     if (this.powerUpActive === 'triple') {
-        // Triple disparo
         for (let angle of [-0.3, 0, 0.3]) {
             const newAngle = this.angle + angle;
             const vx = Math.cos(newAngle) * bulletSpeed;
@@ -959,13 +958,11 @@ Ship.prototype.shoot = function (game) {
             game.projectiles.push(new Projectile(this.x, this.y, vx, vy));
         }
     } else if (this.powerUpActive === 'missile') {
-        // Misil
         const missile = new Projectile(this.x, this.y, bx * 2, by * 2);
         missile.isMissile = true;
         missile.radius = 5;
         game.projectiles.push(missile);
     } else {
-        // Disparo normal
         game.projectiles.push(new Projectile(this.x, this.y, bx, by));
     }
 };
@@ -976,5 +973,10 @@ Ship.prototype.shoot = function (game) {
 window.addEventListener('DOMContentLoaded', () => {
     gameAudio = document.getElementById('bgm');
     shootSound = document.getElementById('shootSound');
+    
+    // Cargar imagen de la nave
+    shipImage = new Image();
+    shipImage.src = 'img/ship.png';
+    
     new AsteroidsGame();
 });
