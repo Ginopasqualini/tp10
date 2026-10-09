@@ -32,6 +32,46 @@ let musicStarted = false;
 let shipImage = null;
 
 // ============================================
+// FUNCIÓN: CREAR IMAGEN DE NAVE EN CANVAS
+// ============================================
+function createShipImage() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 32;
+    canvas.height = 32;
+    const ctx = canvas.getContext('2d');
+
+    // Fondo transparente
+    ctx.clearRect(0, 0, 32, 32);
+
+    // Nave estilo punta (triángulo)
+    ctx.fillStyle = COLORS.YELLOW;
+    ctx.strokeStyle = COLORS.BRIGHT_RED;
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+    ctx.moveTo(16, 2);           // Punta delantera
+    ctx.lineTo(6, 26);           // Ala izquierda
+    ctx.lineTo(16, 18);          // Base trasera izquierda
+    ctx.lineTo(26, 26);          // Ala derecha
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Detalle interior rojo
+    ctx.fillStyle = COLORS.DARK_RED;
+    ctx.beginPath();
+    ctx.moveTo(16, 6);
+    ctx.lineTo(10, 18);
+    ctx.lineTo(22, 18);
+    ctx.closePath();
+    ctx.fill();
+
+    const img = new Image();
+    img.src = canvas.toDataURL();
+    return img;
+}
+
+// ============================================
 // CLASE: NAVE (Con imagen custom)
 // ============================================
 class Ship {
@@ -60,11 +100,11 @@ class Ship {
 
         // Si la imagen está cargada, usarla
         if (shipImage && shipImage.complete && shipImage.naturalHeight !== 0) {
-            ctx.drawImage(shipImage, -15, -15, 30, 30);
+            ctx.drawImage(shipImage, -16, -16, 32, 32);
         } else {
-            // Figura de fallback (triángulo dorado)
+            // Figura de fallback (triángulo amarillo con rojo)
             ctx.fillStyle = COLORS.YELLOW;
-            ctx.strokeStyle = COLORS.YELLOW;
+            ctx.strokeStyle = COLORS.BRIGHT_RED;
             ctx.lineWidth = 2;
             
             ctx.beginPath();
@@ -75,6 +115,15 @@ class Ship {
             ctx.closePath();
             ctx.fill();
             ctx.stroke();
+
+            // Detalle interior rojo
+            ctx.fillStyle = COLORS.DARK_RED;
+            ctx.beginPath();
+            ctx.moveTo(5, 0);
+            ctx.lineTo(-5, -6);
+            ctx.lineTo(-5, 6);
+            ctx.closePath();
+            ctx.fill();
         }
 
         // Llama del propulsor (usando curva Bézier cuadrática)
@@ -974,9 +1023,8 @@ window.addEventListener('DOMContentLoaded', () => {
     gameAudio = document.getElementById('bgm');
     shootSound = document.getElementById('shootSound');
     
-    // Cargar imagen de la nave
-    shipImage = new Image();
-    shipImage.src = 'img/ship.png';
+    // Crear imagen de la nave proceduralmente (rojo y amarillo)
+    shipImage = createShipImage();
     
     new AsteroidsGame();
 });
