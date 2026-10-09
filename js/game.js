@@ -16,6 +16,7 @@ const GAME_STATE = {
 
 // Variable global para el audio
 let gameAudio = null;
+let shootSound = null;
 let musicStarted = false;
 
 // ============================================
@@ -528,6 +529,19 @@ class Enemy {
 }
 
 // ============================================
+// FUNCIÓN: REPRODUCIR SONIDO DE DISPARO
+// ============================================
+function playShootSound() {
+    if (shootSound) {
+        // Reiniciar el sonido desde el inicio
+        shootSound.currentTime = 0;
+        shootSound.play().catch(() => {
+            // El sonido no se pudo reproducir, ignorar error
+        });
+    }
+}
+
+// ============================================
 // CLASE: JUEGO PRINCIPAL
 // ============================================
 class AsteroidsGame {
@@ -929,6 +943,9 @@ Ship.prototype.shoot = function (game) {
     this.canShoot = false;
     this.lastShootTime = Date.now();
 
+    // Reproducir sonido de disparo
+    playShootSound();
+
     const bulletSpeed = 5;
     const bx = Math.cos(this.angle) * bulletSpeed;
     const by = Math.sin(this.angle) * bulletSpeed;
@@ -958,5 +975,6 @@ Ship.prototype.shoot = function (game) {
 // ============================================
 window.addEventListener('DOMContentLoaded', () => {
     gameAudio = document.getElementById('bgm');
+    shootSound = document.getElementById('shootSound');
     new AsteroidsGame();
 });
