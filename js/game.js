@@ -14,6 +14,10 @@ const GAME_STATE = {
     GAME_OVER: 'gameOver'
 };
 
+// Variable global para el audio
+let gameAudio = null;
+let musicStarted = false;
+
 // ============================================
 // CLASE: NAVE (Figura Compleja con Bézier)
 // ============================================
@@ -559,6 +563,17 @@ class AsteroidsGame {
 
             if (e.key === ' ') {
                 e.preventDefault();
+                
+                // Iniciar música en el primer espacio si aún no ha empezado
+                if (!musicStarted && gameAudio) {
+                    gameAudio.src = 'audio/music.mp3';
+                    gameAudio.volume = 0.25;
+                    gameAudio.play().catch(() => {
+                        console.log("No se pudo iniciar la música");
+                    });
+                    musicStarted = true;
+                }
+                
                 this.ship.shoot(this);
             }
             if (e.key === 'p' || e.key === 'P') {
@@ -942,5 +957,6 @@ Ship.prototype.shoot = function (game) {
 // INICIAR JUEGO
 // ============================================
 window.addEventListener('DOMContentLoaded', () => {
+    gameAudio = document.getElementById('bgm');
     new AsteroidsGame();
 });
