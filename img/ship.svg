@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="800" height="800">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <!-- Fondo blanco para el escudo -->
+  <rect width="800" height="800" fill="#ffffff"/>
+
+  <!-- Escudo amarillo -->
+  <path d="M400 70
+           C520 70, 630 120, 670 200
+           L670 430
+           C670 550, 570 640, 400 720
+           C230 640, 130 550, 130 430
+           L130 200
+           C170 120, 280 70, 400 70 Z"
+        fill="#FFD700" stroke="#000000" stroke-width="20" filter="url(#shadow)"/>
+
+  <!-- Ruedas / engranajes rojos -->
+  <g transform="translate(260 300)">
+    <circle r="100" fill="#D80000" stroke="#000" stroke-width="18"/>
+    <circle r="62" fill="#9B0000" stroke="#000" stroke-width="12"/>
+    <g stroke="#000" stroke-width="12" stroke-linecap="round">
+      <line x1="-110" y1="0" x2="-150" y2="0"/>
+      <line x1="110" y1="0" x2="150" y2="0"/>
+      <line x1="0" y1="-110" x2="0" y2="-150"/>
+      <line x1="0" y1="110" x2="0" y2="150"/>
+      <line x1="-78" y1="-78" x2="-110" y2="-110"/>
+      <line x1="78" y1="-78" x2="110" y2="-110"/>
+      <line x1="-78" y1="78" x2="-110" y2="110"/>
+      <line x1="78" y1="78" x2="110" y2="110"/>
+      <line x1="-30" y1="-100" x2="-30" y2="-150"/>
+      <line x1="30" y1="-100" x2="30" y2="-150"/>
+      <line x1="-30" y1="100" x2="-30" y2="150"/>
+      <line x1="30" y1="100" x2="30" y2="150"/>
+      <line x1="-100" y1="-30" x2="-150" y2="-30"/>
+      <line x1="100" y1="-30" x2="150" y2="-30"/>
+      <line x1="-100" y1="30" x2="-150" y2="30"/>
+      <line x1="100" y1="30" x2="150" y2="30"/>
+    </g>
+    <circle r="18" fill="#000"/>
+  </g>
+
+  <g transform="translate(520 300)">
+    <circle r="100" fill="#D80000" stroke="#000" stroke-width="18"/>
+    <circle r="62" fill="#9B0000" stroke="#000" stroke-width="12"/>
+    <g stroke="#000" stroke-width="12" stroke-linecap="round">
+      <line x1="-110" y1="0" x2="-150" y2="0"/>
+      <line x1="110" y1="0" x2="150" y2="0"/>
+      <line x1="0" y1="-110" x2="0" y2="-150"/>
+      <line x1="0" y1="110" x2="0" y2="150"/>
+      <line x1="-78" y1="-78" x2="-110" y2="-110"/>
+      <line x1="78" y1="-78" x2="110" y2="-110"/>
+      <line x1="-78" y1="78" x2="-110" y2="110"/>
+      <line x1="78" y1="78" x2="110" y2="110"/>
+      <line x1="-30" y1="-100" x2="-30" y2="-150"/>
+      <line x1="30" y1="-100" x2="30" y2="-150"/>
+      <line x1="-30" y1="100" x2="-30" y2="150"/>
+      <line x1="30" y1="100" x2="30" y2="150"/>
+      <line x1="-100" y1="-30" x2="-150" y2="-30"/>
+      <line x1="100" y1="-30" x2="150" y2="-30"/>
+      <line x1="-100" y1="30" x2="-150" y2="30"/>
+      <line x1="100" y1="30" x2="150" y2="30"/>
+    </g>
+    <circle r="18" fill="#000"/>
+  </g>
+
+  <!-- Letras centrales -->
+  <g font-family="Arial, Helvetica, sans-serif" font-weight="900" text-anchor="middle">
+    <text x="400" y="390" font-size="180" fill="#000">P</text>
+    <text x="540" y="390" font-size="175" fill="#000">E</text>
+    <text x="275" y="390" font-size="180" fill="#000">I</text>
+    <text x="400" y="530" font-size="180" fill="#000">T</text>
+  </g>
+
+  <!-- Números / texto inferior -->
+  <g font-family="Arial, Helvetica, sans-serif" font-weight="900" text-anchor="middle">
+    <text x="400" y="610" font-size="180" fill="#000">249</text>
+    <text x="400" y="690" font-size="44" fill="#000" style="font-style:italic; letter-spacing:2px;">Nicolás Copérnico</text>
+  </g>
+</svg>
