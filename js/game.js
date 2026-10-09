@@ -162,6 +162,7 @@ class Projectile {
         this.life = 60; // frames
         this.isMissile = false;
         this.explosionRadius = 0;
+        this.isEnemyProjectile = false; // Nuevo: identificar proyectiles enemigos
     }
 
     update() {
@@ -173,7 +174,7 @@ class Projectile {
     draw(ctx) {
         if (!this.isMissile) {
             // Bala normal
-            ctx.fillStyle = '#ffff00';
+            ctx.fillStyle = this.isEnemyProjectile ? '#ff3333' : '#ffff00';
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
             ctx.fill();
@@ -326,7 +327,7 @@ class Asteroid {
 }
 
 // ============================================
-// CLASE: POWER-UP
+// CLASE: PODER-UP
 // ============================================
 class PowerUp {
     constructor(x, y, type) {
@@ -408,6 +409,121 @@ class PowerUp {
 }
 
 // ============================================
+// CLASE: ENEMIGO (NUEVO)
+// ============================================
+class Enemy {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.vx = (Math.random() - 0.5) * 2;
+        this.vy = (Math.random() - 0.5) * 2;
+        this.radius = 12;
+        this.angle = Math.random() * Math.PI * 2;
+        this.rotationSpeed = (Math.random() - 0.5) * 0.08;
+        
+        // Disparos
+        this.shootCooldown = 1000; // ms
+        this.lastShootTime = 0;
+        this.canShoot = true;
+        
+        // AI
+        this.targetAngle = 0;
+        this.health = 2; // Se necesitan 2 impactos para destruir
+        this.score = 150; // Puntos por destruir enemigo
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle);
+
+        // Enemigo como octágono rojo
+        ctx.fillStyle = '#ff3333';
+        ctx.strokeStyle = '#ff0000';
+        ctx.lineWidth = 2;
+
+        ctx.beginPath();
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const x = Math.cos(angle) * this.radius;
+            const y = Math.sin(angle) * this.radius;
+            if (i === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Indicador de salud (barrita arriba del enemigo)
+        ctx.fillStyle = this.health === 2 ? '#00ff00' : '#ffff00';
+        ctx.fillRect(-5, -18, 10 * this.health, 3);
+        ctx.strokeStyle = '#ffffff';
+        ctx.strokeRect(-5, -18, 10, 3);
+
+        ctx.restore();
+    }
+
+    update() {
+        // Movimiento
+        this.x += this.vx;
+        this.y += this.vy;
+        this.angle += this.rotationSpeed;
+
+        // Límites del canvas (rebota)
+        if (this.x < this.radius || this.x > CANVAS_WIDTH - this.radius) {
+            this.vx *= -1;
+            this.x = Math.max(this.radius, Math.min(CANVAS_WIDTH - this.radius, this.x));
+        }
+        if (this.y < this.radius || this.y > CANVAS_HEIGHT - this.radius) {
+            this.vy *= -1;
+            this.y = Math.max(this.radius, Math.min(CANVAS_HEIGHT - this.radius, this.y));
+        }
+
+        // Control de cooldown de disparo
+        if (!this.canShoot && Date.now() - this.lastShootTime > this.shootCooldown) {
+            this.canShoot = true;
+        }
+    }
+
+    shoot(ship) {
+        if (!this.canShoot) return null;
+
+        this.canShoot = false;
+        this.lastShootTime = Date.now();
+
+        // Calcular dirección hacia la nave
+        const dx = ship.x - this.x;
+        const dy = ship.y - this.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance === 0) return null;
+
+        const bulletSpeed = 3.5;
+        const vx = (dx / distance) * bulletSpeed;
+        const vy = (dy / distance) * bulletSpeed;
+
+        const projectile = new Projectile(this.x, this.y, vx, vy);
+        projectile.isEnemyProjectile = true;
+        return projectile;
+    }
+
+    canCollideWith(obj) {
+        const dx = this.x - obj.x;
+        const dy = this.y - obj.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        return distance < this.radius + obj.radius;
+    }
+
+    takeDamage() {
+        this.health--;
+        return this.health <= 0; // Retorna true si está destruido
+    }
+}
+
+// ============================================
 // CLASE: JUEGO PRINCIPAL
 // ============================================
 class AsteroidsGame {
@@ -426,6 +542,7 @@ class AsteroidsGame {
 
         this.ship = new Ship(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
         this.asteroids = [];
+        this.enemies = []; // NUEVO: array de enemigos
         this.projectiles = [];
         this.powerUps = [];
 
@@ -456,6 +573,8 @@ class AsteroidsGame {
 
     spawnWave() {
         this.asteroids = [];
+        this.enemies = []; // Limpiar enemigos
+        
         // Aumentar cantidad de asteroides por nivel: nivel 1 = 3, nivel 2 = 5, nivel 3 = 7, etc.
         const asteroidCount = 3 + (this.level - 1) * 2;
 
@@ -467,6 +586,20 @@ class AsteroidsGame {
             } while (Math.hypot(x - this.ship.x, y - this.ship.y) < 100);
 
             this.asteroids.push(new Asteroid(x, y, 3));
+        }
+
+        // NUEVO: Añadir enemigos a partir del nivel 2
+        if (this.level >= 2) {
+            const enemyCount = 1 + (this.level - 2); // Nivel 2: 1 enemigo, Nivel 3: 2, etc.
+            for (let i = 0; i < enemyCount; i++) {
+                let x, y;
+                do {
+                    x = Math.random() * CANVAS_WIDTH;
+                    y = Math.random() * CANVAS_HEIGHT;
+                } while (Math.hypot(x - this.ship.x, y - this.ship.y) < 150);
+
+                this.enemies.push(new Enemy(x, y));
+            }
         }
     }
 
@@ -509,6 +642,19 @@ class AsteroidsGame {
         // Actualizar asteroides
         this.asteroids.forEach((asteroid) => asteroid.update());
 
+        // NUEVO: Actualizar enemigos e inteligencia
+        this.enemies.forEach((enemy) => {
+            enemy.update();
+            
+            // Los enemigos disparan cada cierto tiempo
+            if (enemy.canShoot) {
+                const projectile = enemy.shoot(this.ship);
+                if (projectile) {
+                    this.projectiles.push(projectile);
+                }
+            }
+        });
+
         // Actualizar power-ups
         this.powerUps = this.powerUps.filter((pu) => {
             pu.update();
@@ -519,6 +665,9 @@ class AsteroidsGame {
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             for (let j = this.asteroids.length - 1; j >= 0; j--) {
                 if (this.projectiles[i] && this.asteroids[j] && this.projectiles[i].canCollideWith(this.asteroids[j])) {
+                    // No contar proyectiles de enemigos
+                    if (this.projectiles[i].isEnemyProjectile) continue;
+
                     const asteroid = this.asteroids[j];
                     const projectile = this.projectiles[i];
                     
@@ -583,6 +732,28 @@ class AsteroidsGame {
             }
         }
 
+        // NUEVO: Colisiones: proyectiles con enemigos
+        for (let i = this.projectiles.length - 1; i >= 0; i--) {
+            for (let j = this.enemies.length - 1; j >= 0; j--) {
+                if (this.projectiles[i] && this.enemies[j] && this.projectiles[i].canCollideWith(this.enemies[j])) {
+                    // No contar proyectiles de otros enemigos
+                    if (this.projectiles[i].isEnemyProjectile) continue;
+
+                    const enemy = this.enemies[j];
+                    
+                    // Infligir daño
+                    if (enemy.takeDamage()) {
+                        // Enemigo destruido
+                        this.score += enemy.score;
+                        this.enemies.splice(j, 1);
+                    }
+
+                    this.projectiles.splice(i, 1);
+                    break;
+                }
+            }
+        }
+
         // Colisiones: nave con power-ups
         for (let i = this.powerUps.length - 1; i >= 0; i--) {
             if (this.powerUps[i] && this.ship.canCollideWith(this.powerUps[i])) {
@@ -610,14 +781,53 @@ class AsteroidsGame {
             }
         }
 
-        // Siguiente nivel (después de 15 asteroides destruidos)
-        if (this.asteroidsDestroyed >= 15 && this.asteroids.length === 0) {
+        // NUEVO: Colisiones: nave con enemigos
+        for (let enemy of this.enemies) {
+            if (this.ship.canCollideWith(enemy)) {
+                if (this.ship.powerUpActive === 'shield') {
+                    this.ship.powerUpActive = null;
+                } else {
+                    this.lives--;
+                    if (this.lives <= 0) {
+                        this.state = GAME_STATE.GAME_OVER;
+                    } else {
+                        this.ship.x = CANVAS_WIDTH / 2;
+                        this.ship.y = CANVAS_HEIGHT / 2;
+                        this.ship.vx = 0;
+                        this.ship.vy = 0;
+                    }
+                }
+            }
+        }
+
+        // NUEVO: Colisiones: proyectiles enemigos con nave
+        for (let i = this.projectiles.length - 1; i >= 0; i--) {
+            if (this.projectiles[i] && this.projectiles[i].isEnemyProjectile && this.ship.canCollideWith(this.projectiles[i])) {
+                if (this.ship.powerUpActive === 'shield') {
+                    this.ship.powerUpActive = null;
+                } else {
+                    this.lives--;
+                    if (this.lives <= 0) {
+                        this.state = GAME_STATE.GAME_OVER;
+                    } else {
+                        this.ship.x = CANVAS_WIDTH / 2;
+                        this.ship.y = CANVAS_HEIGHT / 2;
+                        this.ship.vx = 0;
+                        this.ship.vy = 0;
+                    }
+                }
+                this.projectiles.splice(i, 1);
+            }
+        }
+
+        // Siguiente nivel (después de 15 asteroides destruidos y sin enemigos)
+        if (this.asteroidsDestroyed >= 15 && this.asteroids.length === 0 && this.enemies.length === 0) {
             this.asteroidsDestroyed = 0; // Resetear contador
             this.level++;
             this.spawnWave();
         }
         // O si todos los asteroides fueron destruidos (respaldo)
-        else if (this.asteroids.length === 0 && this.asteroidsDestroyed < 15) {
+        else if (this.asteroids.length === 0 && this.enemies.length === 0 && this.asteroidsDestroyed < 15) {
             this.level++;
             this.asteroidsDestroyed = 0;
             this.spawnWave();
@@ -648,6 +858,7 @@ class AsteroidsGame {
         // Dibujar entidades
         this.ship.draw(this.ctx);
         this.asteroids.forEach((asteroid) => asteroid.draw(this.ctx));
+        this.enemies.forEach((enemy) => enemy.draw(this.ctx)); // NUEVO: dibujar enemigos
         this.projectiles.forEach((proj) => proj.draw(this.ctx));
         this.powerUps.forEach((pu) => pu.draw(this.ctx));
 
